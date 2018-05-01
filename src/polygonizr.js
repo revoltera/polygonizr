@@ -212,13 +212,13 @@
                         this.isRunning = true;
                         m_duration = duration * 1000;
                         m_delay = delay * 1000;
-                        m_requestId = requestAnimationFrame(step);
+                        m_requestId = m_requestAnimationFrame(step);
                     }
                 };
 
                 this.pause = function () {
                     if (this.isRunning) {
-                        cancelAnimationFrame(m_requestId);
+                        m_cancleAnimationFrame(m_requestId);
                         this.isRunning = false;
                         m_startTime = null;
                         m_frameCount = -1;
@@ -228,7 +228,14 @@
                 var m_requestAnimationFrame = window.requestAnimationFrame       ||
                                               window.mozRequestAnimationFrame    ||
                                               window.webkitRequestAnimationFrame ||
+                                              window.oRequestAnimationFrame      ||
                                               window.msRequestAnimationFrame     ;
+                var m_cancleAnimationFrame =  window.cancelAnimationFrame              ||
+                                              window.mozCancelRequestAnimationFrame    ||
+                                              window.webkitCancelRequestAnimationFrame ||
+                                              window.oCancelRequestAnimationFrame      ||
+                                              window.msCancelRequestAnimationFrame     ;
+
                 var m_startTime = null;
                 var m_frameCount = -1
                 var m_requestId = null;

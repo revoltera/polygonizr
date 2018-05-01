@@ -2,27 +2,31 @@ polygonizr
 ==========
 **A jQuery plugin for creating a polygon mesh network bacgrkound**
 
-## License
-[Beerware License](LICENSE.md)
+[![License](https://img.shields.io/badge/license-Beerware-blue.svg)](LICENSE.md)
 
 ## Samples
 
 ### Initialization
-Initializes the plugin on a jQuery DOM-element, in this case a DIV-node with an id "site-landing". The plugin creates a canvas which is by default absolute positioned, and inherits the size of the parent. This can be applied to any DOM-element on the page.
+Initialize the plugin on any jQuery DOM-element, in the sample a DIV-node with id "site-landing". The plugin creates a canvas which is by default absolute positioned and inherits the size of the parent.
 
 ```javascript
     $('#site-landing').polygonizr();
 ```
-To set options for the plugin on initialization, simply declare the option and pass its value. See below for a [list of possible settings](#Settings-and-Defaults).
+You can easily override default behavior on initialization by passing options to the plugin method. See below for a [list of possible settings](#settings-and-defaults).
 
 ```javascript
     $('#site-landing').polygonizr({
+        numberOfNodes: 30,
         nodeEase: 'linear'
     });
 ```
 
 ### For lulz and funz
-Among the settings, you can also alter how the initial x and y coordinates are positioned of every mesh nodes to create any desired pattern. For example, the following two samples draws a circle and a archimedean spiral.
+Among the possible overrides, you can for example also alter how the initial x and y coordinates are positioned. The <i>"specifyPolygonMeshNetworkFormation"</i> setting acts as a loop for each <i>"numberOfNodes"</i> to be drawn. To alter their positioning, simply return an x and y coordinate to create a desired pattern, as illustrated in the samples below.
+
+Keep in mind, however, that you need to notify the plugin not to randomize the formation. This is done by passing <i>"false"</i> to the <i>"randomizePolygonMeshNetworkFormation"</i> setting.
+
+The following two samples draws a circle and an archimedean spiral.
 
 ```javascript
     // Positions the initialized mesh nodes as a circle.
