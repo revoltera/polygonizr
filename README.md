@@ -20,6 +20,13 @@ You can easily override default behavior on initialization by passing options to
         nodeEase: 'linear'
     });
 ```
+Two functions for stopping and starting the animation are exposed.
+
+```javascript
+    var polygon = $('#site-landing').polygonizr();
+    polygon.stop(); // Stop will freeze the animation at its current state.
+    polygon.start(); // Call start to resume the animation.
+```
 
 ### For lulz and funz
 Among the possible overrides, you can for example also alter how the initial x and y coordinates are positioned. The <i>"specifyPolygonMeshNetworkFormation"</i> setting acts as a loop for each <i>"numberOfNodes"</i> to be drawn. To alter their positioning, simply return an x and y coordinate to create a desired pattern, as illustrated in the samples below.
@@ -94,6 +101,8 @@ The following two samples draws a circle and an archimedean spiral.
     nodeLineColor: "240, 255, 250",
     // Sets the color of the filled triangles in the network (RGB).
     nodeFillColor: "240, 255, 250",
+    // If valid RGB color adds a linear gradient stroke (set null to remove).
+    nodeFillGradientColor: "50, 50, 50",
     // Sets the alpha level for the colors (1-0).
     nodeFillAlpha: 0.5,
     // Sets the alpha level for the lines (1-0).
