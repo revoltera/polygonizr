@@ -393,7 +393,8 @@
                 ctx.lineTo(node.Closest[i].currentX, node.Closest[i].currentY);
                 ctx.lineTo(node.Closest[(i + 1) % node.Closest.length].currentX, node.Closest[(i + 1) % node.Closest.length].currentY);
 
-                if (settings.nodeFillGradientColor !== null) {
+                // Check if we want gradient color, and if the coordinates are finite.
+                if (settings.nodeFillGradientColor !== null && (isFinite(node.currentX) && isFinite(node.currentY) && isFinite(node.Closest[i].currentX) && isFinite(node.Closest[i].currentY))) {
                     var gradient = ctx.createLinearGradient(node.currentX, node.currentY, node.Closest[i].currentX, node.Closest[i].currentY);
                     gradient.addColorStop(0, 'rgba(' + settings.nodeFillColor + ',' + node.fillAlpha + ')');
                     gradient.addColorStop(1, 'rgba(' + settings.nodeFillGradientColor + ', ' + node.fillAlpha + ')');
