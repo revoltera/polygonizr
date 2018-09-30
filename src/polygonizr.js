@@ -95,7 +95,7 @@
             canvasElement.width = settings.canvasWidth;
             canvasElement.height = settings.canvasHeight;
             canvasElement.style.position = settings.canvasPosition;
-            this.element.append(canvasElement);
+            $(this.element).append(canvasElement);
 
             // Setup canvas, context and define variable for nodes.
             var ctx = canvasElement.getContext('2d');
