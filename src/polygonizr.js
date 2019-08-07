@@ -50,6 +50,8 @@
             nodeLineAlpha: 0.5,
             // Sets the alpha level for the dots (1-0).
             nodeDotAlpha: 1.0,
+            // A numberic value (0-1) defining the ods of showing the cooridnates for where a new node destination will end.
+            nodeDotPrediction: 0,
             // Defines if the triangles in the network should be shown.
             nodeFillSapce: true,
             // If true, the animation is allowed to go outside the definde canvas space.
@@ -313,6 +315,9 @@
                     nodes[i].targetY = newTargetY;
                     nodes[i].startX = nodes[i].currentX;
                     nodes[i].startY = nodes[i].currentY;
+
+                    // Check if we ought to draw node-prediction.
+                    nodes[i].NodePrediction = settings.nodeDotPrediction > 0 && Math.random() <= settings.nodeDotPrediction;
                 }
             }
 
@@ -425,6 +430,12 @@
                 if (settings.nodeGlowing) {
                     ctx.shadowBlur = 10;
                     ctx.shadowColor = 'rgba(' + settings.nodeDotColor + ', ' + node.dotAlpha + ')';
+                } if (node.NodePrediction == true) {
+                    var nodeSize = (settings.nodeDotSize * Math.PI);
+                    var nodeMiddleSize = (nodeSize / 2);
+                    ctx.font = nodeSize + "px Arial";
+                    ctx.strokeRect(node.targetX - nodeMiddleSize, node.targetY - nodeMiddleSize, nodeSize, nodeSize);
+                    ctx.fillText(node.targetX + ", " + node.targetY, node.targetX + nodeSize, node.targetY - nodeMiddleSize);
                 }
                 ctx.fill();
             }

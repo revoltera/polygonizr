@@ -114,6 +114,8 @@ The following two samples draws a circle and an archimedean spiral.
             nodeLineAlpha: 0.5,
             // Sets the alpha level for the dots (1-0).
             nodeDotAlpha: 1.0,
+            // A numberic value (0-1) defining the ods of showing the cooridnates for where a new node destination will end.
+            nodeDotPrediction: 0,
             // Defines if the triangles in the network should be shown.
             nodeFillSapce: true,
             // If true, the animation is allowed to go outside the definde canvas space.
