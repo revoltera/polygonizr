@@ -7,111 +7,79 @@
  * ----------------------------------------------------------------------------
  */
 
-(function ($) {
-    $.fn.polygonizr = function (options) {
-        var defaults = {
-            // How long to pause in between new node-movements.
-            restNodeMovements: 1,
-            // When the cluster updates, this sets speed of nodes.
-            duration: 3,
-            // Define the maximum distance to move nodes.
-            nodeMovementDistance: 100,
-            // The number of node nodes to print out.
-            numberOfNodes: 25,
-            // The number of dots, unconnected to any other nodes, floating arround.
-            numberOfUnconnectedNode: 25,
-            // Connects passing free nodes if within the distance as specified in ConnectUnconnectedNodesDistance.
-            ConnectUnconnectedNodes: true,
-            // The distance between unconnected nodes to connect to each other.
-            ConnectUnconnectedNodesDistance: 150,
-            // Define the maximume size of each node dot.
-            nodeDotSize: 2.5,
-            // Sets the ease mode of the movement: linear, easeIn, easeOut, easeInOut, accelerateDecelerate.
-            nodeEase: "easeOut",
-            // If true, the nodes will descend into place on load.
-            nodeFancyEntrance: false,
-            // Makes the cluster forms an ellipse inspired formation, random if true.
-            randomizePolygonMeshNetworkFormation: true,
-            // Define a formula for how to initialize each node dot's position.
-            specifyPolygonMeshNetworkFormation: null,
-            // Number of relations between nodes.
-            nodeRelations: 3,
-            // The FPS for the whole canvas.
-            animationFps: 30,
-            // Sets the color of the node dots in the network (RGB).
-            nodeDotColor: "240, 255, 250",
-            // Sets the color of the node lines in the network (RGB).
-            nodeLineColor: "240, 255, 250",
-            // Sets the color of the filled triangles in the network (RGB).
-            nodeFillColor: "240, 255, 250",
-            // Sets the alpha level for the colors (1-0).
-            nodeFillAlpha: 0.5,
-            // Sets the alpha level for the lines (1-0).
-            nodeLineAlpha: 0.5,
-            // Sets the alpha level for the dots (1-0).
-            nodeDotAlpha: 1.0,
-            // A numberic value (0-1) defining the ods of showing the cooridnates for where a new node destination will end.
-            nodeDotPrediction: 0,
-            // Defines if the triangles in the network should be shown.
-            nodeFillSapce: true,
-            // If true, the animation is allowed to go outside the definde canvas space.
-            nodeOverflow: true,
-            // Define if the active animation should glow or not (not CPU friendly).
-            nodeGlowing: false,
-            // Define the canvas size and css position.
-            canvasWidth: $(this).width(),
-            canvasHeight: $(this).height(),
-            canvasPosition: "absolute",
-            canvasTop: "auto",
-            canvasBottom: "auto",
-            canvasRight: "auto",
-            canvasLeft: "auto"
-        };
+; (function ($) {
 
-        var settings = $.extend({}, defaults, options);
+    class Polygonizr {
+        
+        constructor($this, options) {
+            //////////////////////
+            // Define variables //
+            //////////////////////
+            this.$this = $this;
+            this.settings = $.extend({}, $.fn.polygonizr.defaults, options);
 
-        return this.each(function () {
             // Create a new canvas element and append it to the current object.
-            var m_this = $(this);
-            var canvasElement = document.createElement('canvas');
-            canvasElement.width = settings.canvasWidth;
-            canvasElement.height = settings.canvasHeight;
-            canvasElement.style.position = settings.canvasPosition;
-            canvasElement.style.top = settings.canvasTop;
-            canvasElement.style.bottom = settings.canvasBottom;
-            canvasElement.style.right = settings.canvasRight;
-            canvasElement.style.left = settings.canvasLeft;
-            m_this.append(canvasElement);
+            this.canvasElement = document.createElement('canvas');
+            this.$this.append(this.canvasElement);
 
-            // Setup canvas, context and define variable for nodes.
-            var ctx = canvasElement.getContext('2d');
-            var nodes = [];
+            // Setup context.
+            this.ctx = this.canvasElement.getContext('2d');
 
-            // Start setting up node nodes.
-            setupClusterNodes();
+            // Make a working copy of the movement distance to be modified to avoid overflow.
+            this.m_nodeMovementDistance = this.settings.nodeMovementDistance;
 
-            // Start animations.
-            startNodeAnimations();
+            // Setup constant strings.
+            const Constants = {
+                Animation: {
+                    EASING_LINEAR: "linear",
+                    EASING_EASEIN: "easeIn",
+                    EASING_EASEOUT: "easeOut",
+                    EASING_EASEINOUT: "easeInOut",
+                    EASING_ACCELERATE: "accelerateDecelerate",
+                    EASING_DESCENDING: "descendingEntrance"
+                }
+            };
 
-            ////////////////////////////////////
-            // Manages setting up the nodes. //
-            ////////////////////////////////////
-            function setupClusterNodes() {
+            ///////////////////////
+            // Define functions. //
+            ///////////////////////
+            this.setupClusterNodes = function () {
+                // Setup collection of nodes.
+                this.nodes = [];
+
                 // Distribute the nodes somewhere on our canvas.
-                for (var i = 0; i < settings.numberOfNodes + settings.numberOfUnconnectedNode; i++) {
+                for (let i = 0; i < this.settings.numberOfNodes + this.settings.numberOfUnconnectedNode; i++) {
                     // Define the variable to hold the current node's position.
-                    var currentNode = { x: 0, y: 0 };
+                    let currentNode = { x: 0, y: 0 };
 
                     // Check what cluster formation, and get the position accordingly.
-                    if (settings.randomizePolygonMeshNetworkFormation) {
-                        currentNode.x = Math.random() * settings.canvasWidth;
-                        currentNode.y = Math.random() * settings.canvasHeight;
-                    } else {
-                        currentNode = settings.specifyPolygonMeshNetworkFormation(i);
+                    if (this.settings.randomizePolygonMeshNetworkFormation) {
+                        currentNode.x = Math.random() * this.settings.canvasWidth;
+                        currentNode.y = Math.random() * this.settings.canvasHeight;
+                    }
+                    else {
+                        currentNode = this.settings.specifyPolygonMeshNetworkFormation(i);
+                    }
+
+                    // Set max if no overflow is allowed.
+                    if (this.settings.nodeOverflow == false) {
+                        // Calculate new max heights and widths.
+                        let maxDistance = this.settings.nodeMovementDistance + this.settings.nodeDotSize;
+                        let maxHeight = this.settings.canvasHeight - maxDistance;
+                        let maxWidth = this.settings.canvasWidth - maxDistance;
+
+                        // Calculate new movement distance, not to go outside the canvas.
+                        this.m_nodeMovementDistance = Math.min(Math.min(this.settings.nodeMovementDistance, maxWidth), Math.min(this.settings.nodeMovementDistance, maxHeight));
+
+                        // Alter the canvas position to force it inside the canvas.
+                        currentNode.x = Math.floor(currentNode.x + maxDistance > this.settings.canvasWidth ? maxWidth : currentNode.x);
+                        currentNode.x = Math.floor(currentNode.x - maxDistance < maxDistance ? maxDistance : currentNode.x);
+                        currentNode.y = Math.floor(currentNode.y + maxDistance > this.settings.canvasHeight ? maxHeight : currentNode.y);
+                        currentNode.y = Math.floor(currentNode.y - maxDistance < maxDistance ? maxDistance : currentNode.y);
                     }
 
                     // Populate the nodes, and keep the original position to stay close.
-                    nodes.push({
+                    this.nodes.push({
                         currentX: currentNode.x,
                         originX: currentNode.x,
                         startX: currentNode.x,
@@ -123,22 +91,22 @@
                     });
 
                     // Setup free floating, unconnected dots.
-                    nodes[i].UnconnectedNode = (settings.numberOfUnconnectedNode > i);
+                    this.nodes[i].UnconnectedNode = (this.settings.numberOfUnconnectedNode > i);
                 }
 
                 // For each node find the 3 closest nodes.
-                for (var i = 0; i < nodes.length; i++) {
+                for (let i = 0; i < this.nodes.length; i++) {
                     // Collect the closest nodes.
-                    var closest = [];
+                    let closest = [];
 
                     // Start of with the first node.
-                    var node = nodes[i];
+                    let node = this.nodes[i];
 
                     // Collect randomly closest nodes.
-                    for (var j = 0; j < nodes.length; j++) {
-                        var tempNode = nodes[j];
+                    for (let j = 0; j < this.nodes.length; j++) {
+                        let tempNode = this.nodes[j];
                         if (node != tempNode) {
-                            for (var k = 0; k < settings.nodeRelations; k++) {
+                            for (let k = 0; k < this.settings.nodeRelations; k++) {
                                 if (closest[k] == undefined) {
                                     closest[k] = tempNode;
                                     break;
@@ -154,45 +122,25 @@
                     node.Closest = closest;
 
                     // Assigne the alpha level to the current node.
-                    setAlphaLevel(node);
+                    this.setAlphaLevel(node);
                 }
-            }
+            };
 
             ////////////////////////////////
             // Start the frame animation. //
             ////////////////////////////////
-            function startNodeAnimations() {
-                // Initiate the first drawing, and then update the animation after it finishes based on the time interval.
-                var animator = new Animator(settings.nodeEase,
-                    settings.animationFps,
-                    settings.duration,
-                    settings.restNodeMovements,
-                    settings.nodeFancyEntrance,
-                    draw);
-                animator.start();
-            }
-
-            const Constants = {
-                Animation: {
-                    EASING_LINEAR: "linear",
-                    EASING_EASEIN: "easeIn",
-                    EASING_EASEOUT: "easeOut",
-                    EASING_EASEINOUT: "easeInOut",
-                    EASING_ACCELERATE: "accelerateDecelerate",
-                    EASING_DESCENDING: "descendingEntrance"
-                }
-            };
-
-            function Animator(easing, fps, duration, delay, fancyEntrance, callback) {
+            this.Animator = function ($self, easing, fps, duration, delay, fancyEntrance, callback) {
 
                 function step(timestamp) {
-                    if (!m_startTime) m_startTime = timestamp;
-                    if (!m_lastFrameUpdate) m_lastFrameUpdate = timestamp;
-                    var currentFrame = Math.floor((timestamp - m_startTime) / (1000 / fps));
+                    if (!m_startTime)
+                        m_startTime = timestamp;
+                    if (!m_lastFrameUpdate)
+                        m_lastFrameUpdate = timestamp;
+                    let currentFrame = Math.floor((timestamp - m_startTime) / (1000 / fps));
 
                     if (m_frameCount < currentFrame) {
                         m_frameCount = currentFrame;
-                        var currentDuration = timestamp - m_lastFrameUpdate;
+                        let currentDuration = timestamp - m_lastFrameUpdate;
                         if (currentDuration <= m_duration) {
                             // Check if it is time to set new random target possitions.
                             if (m_newTargetPossition) {
@@ -201,16 +149,19 @@
                             }
                             // For each frame up till total duration, set new position for x and y.
                             if (m_entranceSingleton && fancyEntrance) {
-                                setNewNodePossition(Constants.Animation.EASING_DESCENDING, currentDuration, m_duration);
-                            } else {
+                                setNewNodePossition($self.Constants.Animation.EASING_DESCENDING, currentDuration, m_duration);
+                            }
+                            else {
                                 setNewNodePossition(easing, currentDuration, m_duration);
                             }
+
                             // Check for callbakcs.
                             if (callback && typeof (callback) === "function") {
                                 // Call for a redraw.
-                                callback();
+                                callback($self);
                             }
-                        } else if (currentDuration >= (m_duration + m_delay)) {
+                        }
+                        else if (currentDuration >= (m_duration + m_delay)) {
                             m_lastFrameUpdate = timestamp;
                             m_newTargetPossition = true;
                             m_entranceSingleton = false;
@@ -230,7 +181,7 @@
                     }
                 };
 
-                this.pause = function () {
+                this.stop = function () {
                     if (this.isRunning) {
                         m_cancleAnimationFrame(m_requestId);
                         this.isRunning = false;
@@ -239,26 +190,49 @@
                     }
                 };
 
-                var m_requestAnimationFrame = window.requestAnimationFrame       ||
-                                              window.mozRequestAnimationFrame    ||
-                                              window.webkitRequestAnimationFrame ||
-                                              window.oRequestAnimationFrame      ||
-                                              window.msRequestAnimationFrame     ;
-                var m_cancleAnimationFrame =  window.cancelAnimationFrame              ||
-                                              window.mozCancelRequestAnimationFrame    ||
-                                              window.webkitCancelRequestAnimationFrame ||
-                                              window.oCancelRequestAnimationFrame      ||
-                                              window.msCancelRequestAnimationFrame     ;
+                function setNewTargetPossition() {
+                    for (let i in $self.nodes) {
+                        // Calculate new target possitions.
+                        let newTargetX = $self.calculateNewTargetPossition($self.nodes[i].originX);
+                        let newTargetY = $self.calculateNewTargetPossition($self.nodes[i].originY);
 
-                var m_startTime = null;
-                var m_frameCount = -1
-                var m_requestId = null;
-                var m_lastFrameUpdate = null;
-                var m_newTargetPossition = true;
-                var m_entranceSingleton = true;
-                var m_duration;
-                var m_delay;
-            }
+                        $self.nodes[i].targetX = newTargetX;
+                        $self.nodes[i].targetY = newTargetY;
+                        $self.nodes[i].startX = $self.nodes[i].currentX;
+                        $self.nodes[i].startY = $self.nodes[i].currentY;
+
+                        // Check if we ought to draw node-prediction.
+                        $self.nodes[i].NodePrediction = $self.settings.nodeDotPrediction > 0 && Math.random() <= $self.settings.nodeDotPrediction;
+                    }
+                }
+
+                function setNewNodePossition(easing, currentTime, endTime) {
+                    for (let i in $self.nodes) {
+                        $self.nodes[i].currentX = getEasing(easing, currentTime, $self.nodes[i].startX, $self.nodes[i].targetX, endTime);
+                        $self.nodes[i].currentY = getEasing(easing, currentTime, $self.nodes[i].startY, $self.nodes[i].targetY, endTime);
+                    }
+                }
+
+                let m_requestAnimationFrame = window.requestAnimationFrame ||
+                    window.mozRequestAnimationFrame ||
+                    window.webkitRequestAnimationFrame ||
+                    window.oRequestAnimationFrame ||
+                    window.msRequestAnimationFrame;
+                let m_cancleAnimationFrame = window.cancelAnimationFrame ||
+                    window.mozCancelRequestAnimationFrame ||
+                    window.webkitCancelRequestAnimationFrame ||
+                    window.oCancelRequestAnimationFrame ||
+                    window.msCancelRequestAnimationFrame;
+
+                let m_startTime = null;
+                let m_frameCount = -1;
+                let m_requestId = null;
+                let m_lastFrameUpdate = null;
+                let m_newTargetPossition = true;
+                let m_entranceSingleton = true;
+                let m_duration;
+                let m_delay;
+            };
 
             function getEasing(easing, currentTime, startPossition, targetPossition, endTime) {
                 switch (easing) {
@@ -273,17 +247,20 @@
                         return -(targetPossition - startPossition) * currentTime * (currentTime - 2) + startPossition;
                     case Constants.Animation.EASING_EASEINOUT:
                         currentTime /= (endTime / 2);
-                        if (currentTime < 1) return (targetPossition - startPossition) / 2 * Math.pow(currentTime, 2) + startPossition;
+                        if (currentTime < 1)
+                            return (targetPossition - startPossition) / 2 * Math.pow(currentTime, 2) + startPossition;
                         return -(targetPossition - startPossition) / 2 * ((currentTime - 1) * ((currentTime - 1) - 2) - 1) + startPossition;
                         break;
                     case Constants.Animation.EASING_ACCELERATE:
                         currentTime /= (endTime / 2);
-                        if (currentTime < 1) return (targetPossition - startPossition) / 2 * Math.pow(currentTime, 3) + startPossition;
+                        if (currentTime < 1)
+                            return (targetPossition - startPossition) / 2 * Math.pow(currentTime, 3) + startPossition;
                         return (targetPossition - startPossition) / 2 * (Math.pow(currentTime - 2, 3) + 2) + startPossition;
                         break;
                     case Constants.Animation.EASING_DESCENDING:
                         currentTime /= (endTime / 2);
-                        if (currentTime < 1) return (targetPossition - startPossition) / Math.pow(currentTime, 3) + startPossition;
+                        if (currentTime < 1)
+                            return (targetPossition - startPossition) / Math.pow(currentTime, 3) + startPossition;
                         return (targetPossition - startPossition) / (Math.pow(currentTime - 2, 3) + 2) + startPossition;
                         break;
                     default:
@@ -291,154 +268,136 @@
                 }
             }
 
-            function setNewNodePossition(easing, currentTime, endTime) {
-                for (var i in nodes) {
-                    nodes[i].currentX = getEasing(easing, currentTime, nodes[i].startX, nodes[i].targetX, endTime);
-                    nodes[i].currentY = getEasing(easing, currentTime, nodes[i].startY, nodes[i].targetY, endTime);
-                }
-            }
-
-            function setNewTargetPossition() {
-                for (var i in nodes) {
-                    // Calculate new target possitions.
-                    var newTargetX = calculateNewTargetPossition(nodes[i].originX);
-                    var newTargetY = calculateNewTargetPossition(nodes[i].originY);
-
-                    // If we don't want to allow the animation to draw outside the canvas, calculate new coordinations till it won't.
-                    while (settings.nodeOverflow == false && nodeIsInsideCanvas(newTargetX, newTargetY) == false)
-                    {
-                        newTargetX = calculateNewTargetPossition(nodes[i].originX);
-                        newTargetY = calculateNewTargetPossition(nodes[i].originY);
-                    }
-
-                    nodes[i].targetX = newTargetX;
-                    nodes[i].targetY = newTargetY;
-                    nodes[i].startX = nodes[i].currentX;
-                    nodes[i].startY = nodes[i].currentY;
-
-                    // Check if we ought to draw node-prediction.
-                    nodes[i].NodePrediction = settings.nodeDotPrediction > 0 && Math.random() <= settings.nodeDotPrediction;
-                }
-            }
-
             //////////////////////////////////////////////////////////////
             // Calculates a new target possition for a given coordinate //
             //////////////////////////////////////////////////////////////
-            function calculateNewTargetPossition(originValue)
-            {
-                return originValue + (Math.random() < 0.5 ? -Math.random() : Math.random()) * settings.nodeMovementDistance;
-            }
+            this.calculateNewTargetPossition = function (originValue) {
+                return originValue + (Math.random() < 0.5 ? -Math.random() : Math.random()) * this.m_nodeMovementDistance;
+            };
 
             ////////////////////////////////
             // Calculate the alpha levels //
             ////////////////////////////////
-            function setAlphaLevel(node) {
-                var screenDistance = Math.sqrt(Math.pow(settings.canvasWidth, 2) + Math.pow(settings.canvasHeight, 2));
-                var nodeDistance = 0;
-                for (var i in node.Closest) {
+            this.setAlphaLevel = function (node) {
+                let screenDistance = Math.sqrt(Math.pow(this.settings.canvasWidth, 2) + Math.pow(this.settings.canvasHeight, 2));
+                let nodeDistance = 0;
+                for (let i in node.Closest) {
                     nodeDistance += getDistance(node.Closest[i], node.Closest[(i + 1) % node.Closest.length]);
                 }
-                var generalAlpha = 1 - (nodeDistance / screenDistance);
-                node.lineAlpha = generalAlpha * settings.nodeLineAlpha;
-                node.dotAlpha = generalAlpha * settings.nodeDotAlpha;
+                let generalAlpha = 1 - (nodeDistance / screenDistance);
+                node.lineAlpha = generalAlpha * this.settings.nodeLineAlpha;
+                node.dotAlpha = generalAlpha * this.settings.nodeDotAlpha;
 
                 //////////////////////////////////////
                 // Change till desired effect, more //
                 // or less randomly assigned anyway //
                 //////////////////////////////////////
                 if (generalAlpha > 0.85) {
-                    node.fillAlpha = generalAlpha * settings.nodeFillAlpha;
-                    node.lineAlpha = settings.nodeLineAlpha;
-                    node.dotAlpha = settings.nodeDotAlpha;
-                } else if (generalAlpha < 0.8 && generalAlpha > 0.7) {
-                    node.fillAlpha = 0.5 * generalAlpha * settings.nodeFillAlpha;
-                    node.lineAlpha = settings.nodeLineAlpha;
-                    node.dotAlpha = settings.nodeDotAlpha;
-                } else if (generalAlpha < 0.7 && generalAlpha > 0.4) {
-                    node.fillAlpha = 0.2 * generalAlpha * settings.nodeFillAlpha;
-                } else {
+                    node.fillAlpha = generalAlpha * this.settings.nodeFillAlpha;
+                    node.lineAlpha = this.settings.nodeLineAlpha;
+                    node.dotAlpha = this.settings.nodeDotAlpha;
+                }
+                else if (generalAlpha < 0.8 && generalAlpha > 0.7) {
+                    node.fillAlpha = 0.5 * generalAlpha * this.settings.nodeFillAlpha;
+                    node.lineAlpha = this.settings.nodeLineAlpha;
+                    node.dotAlpha = this.settings.nodeDotAlpha;
+                }
+                else if (generalAlpha < 0.7 && generalAlpha > 0.4) {
+                    node.fillAlpha = 0.2 * generalAlpha * this.settings.nodeFillAlpha;
+                }
+                else {
                     node.fillAlpha = 0;
                 }
-            }
+            };
 
             //////////////////////////
             // Updates what to draw //
             //////////////////////////
-            function draw() {
-                ctx.clearRect(0, 0, settings.canvasWidth, settings.canvasHeight);
-                for (var i in nodes) {
+            this.draw = function ($self) {
+                $self.ctx.clearRect(0, 0, $self.settings.canvasWidth, $self.settings.canvasHeight);
+                for (let i in $self.nodes) {
                     // Draw the lines and circles.
-                    drawLines(nodes[i]);
-                    drawCircle(nodes[i]);
+                    $self.drawLines($self, $self.nodes[i]);
+                    $self.drawCircle($self, $self.nodes[i]);
                 }
-            }
+            };
 
             ////////////////////////////////
             // Handles the line drawings. //
             ////////////////////////////////
-            function drawLines(node) {
+            this.drawLines = function ($self, node) {
                 // If not visible, return.
-                if (!node.lineAlpha > 0 && !node.fillAlpha > 0) return;
-                
-                for (var i in node.Closest) {
+                if (!node.lineAlpha > 0 && !node.fillAlpha > 0)
+                    return;
+
+                for (let i in node.Closest) {
                     // Check if we should draw the connection, or if its an unconnected node or if it is too far away.
-                    var lineConnection = (node.Closest[i].UnconnectedNode == false && node.UnconnectedNode == false);
-                    var drawCloseUnconnection = settings.ConnectUnconnectedNodes == true && getDistance(node, node.Closest[i]) <= settings.ConnectUnconnectedNodesDistance;
+                    let lineConnection = (node.Closest[i].UnconnectedNode == false && node.UnconnectedNode == false);
+                    let drawCloseUnconnection = $self.settings.ConnectUnconnectedNodes == true && getDistance(node, node.Closest[i]) <= $self.settings.ConnectUnconnectedNodesDistance;
 
-                    if (lineConnection || drawCloseUnconnection)
-                    {
+                    if (lineConnection || drawCloseUnconnection) {
                         if (node.lineAlpha > 0) {
-                            drawLineNodeConnection(node, i);
+                            $self.drawLineNodeConnection($self, node, i);
                         }
-                        
-                        if (settings.nodeFillSapce && node.fillAlpha > 0 && lineConnection == true) {
-                            drawFillNodeConnection(node, i);
+
+                        if ($self.settings.nodeFillSapce && node.fillAlpha > 0 && lineConnection == true) {
+                            $self.drawFillNodeConnection($self, node, i);
                         }
-                    } 
+                    }
                 }
-            }
+            };
 
-            function drawLineNodeConnection(node, i)
-            {
-                ctx.beginPath();
-                ctx.moveTo(node.currentX, node.currentY);
-                ctx.lineTo(node.Closest[i].currentX, node.Closest[i].currentY);
-                ctx.strokeStyle = 'rgba(' + settings.nodeLineColor + ',' + node.lineAlpha + ')';
-                ctx.stroke();
-            }
+            this.drawLineNodeConnection = function ($self, node, i) {
+                $self.ctx.beginPath();
+                $self.ctx.moveTo(node.currentX, node.currentY);
+                $self.ctx.lineTo(node.Closest[i].currentX, node.Closest[i].currentY);
+                $self.ctx.strokeStyle = 'rgba(' + $self.settings.nodeLineColor + ',' + node.lineAlpha + ')';
+                $self.ctx.stroke();
+            };
 
-            function drawFillNodeConnection(node, i)
-            {
-                ctx.beginPath();
-                ctx.moveTo(node.currentX, node.currentY);
-                ctx.lineTo(node.Closest[i].currentX, node.Closest[i].currentY);
-                ctx.lineTo(node.Closest[(i + 1) % node.Closest.length].currentX, node.Closest[(i + 1) % node.Closest.length].currentY);
-                ctx.fillStyle = 'rgba(' + settings.nodeFillColor + ',' + node.fillAlpha + ')';
-                ctx.fill();
-            }
+            this.drawFillNodeConnection = function ($self, node, i) {
+                $self.ctx.beginPath();
+                $self.ctx.moveTo(node.currentX, node.currentY);
+                $self.ctx.lineTo(node.Closest[i].currentX, node.Closest[i].currentY);
+                $self.ctx.lineTo(node.Closest[(i + 1) % node.Closest.length].currentX, node.Closest[(i + 1) % node.Closest.length].currentY);
+
+                // Check if we want gradient color, and if the coordinates are finite.
+                if ($self.settings.nodeFillGradientColor !== null && (isFinite(node.currentX) && isFinite(node.currentY) && isFinite(node.Closest[i].currentX) && isFinite(node.Closest[i].currentY))) {
+                    var gradient = $self.ctx.createLinearGradient(node.currentX, node.currentY, node.Closest[i].currentX, node.Closest[i].currentY);
+                    gradient.addColorStop(0, 'rgba(' + $self.settings.nodeFillColor + ',' + node.fillAlpha + ')');
+                    gradient.addColorStop(1, 'rgba(' + $self.settings.nodeFillGradientColor + ', ' + node.fillAlpha + ')');
+                    $self.ctx.fillStyle = gradient;
+                }
+                else {
+                    $self.ctx.fillStyle = 'rgba(' + $self.settings.nodeFillColor + ',' + node.fillAlpha + ')';
+                }
+
+                $self.ctx.fill();
+            };
 
             ////////////////////////////////
             // Handles the node drawings. //
             ////////////////////////////////
-            function drawCircle(node) {
+            this.drawCircle = function ($self, node) {
                 // If not visible, return.
-                if (!node.dotAlpha > 0) return;
+                if (!node.dotAlpha > 0)
+                    return;
 
-                ctx.beginPath();
-                ctx.arc(node.currentX, node.currentY, settings.nodeDotSize, 0, Math.PI * 2, false);
-                ctx.fillStyle = 'rgba(' + settings.nodeDotColor + ', ' + node.dotAlpha + ')';
-                if (settings.nodeGlowing) {
-                    ctx.shadowBlur = 10;
-                    ctx.shadowColor = 'rgba(' + settings.nodeDotColor + ', ' + node.dotAlpha + ')';
+                $self.ctx.beginPath();
+                $self.ctx.arc(node.currentX, node.currentY, $self.settings.nodeDotSize, 0, Math.PI * 2, false);
+                $self.ctx.fillStyle = 'rgba(' + $self.settings.nodeDotColor + ', ' + node.dotAlpha + ')';
+                if ($self.settings.nodeGlowing) {
+                    $self.ctx.shadowBlur = 10;
+                    $self.ctx.shadowColor = 'rgba(' + $self.settings.nodeDotColor + ', ' + node.dotAlpha + ')';
                 } if (node.NodePrediction == true) {
-                    var nodeSize = (settings.nodeDotSize * Math.PI);
-                    var nodeMiddleSize = (nodeSize / 2);
-                    ctx.font = nodeSize + "px Arial";
-                    ctx.strokeRect(node.targetX - nodeMiddleSize, node.targetY - nodeMiddleSize, nodeSize, nodeSize);
-                    ctx.fillText(node.targetX + ", " + node.targetY, node.targetX + nodeSize, node.targetY - nodeMiddleSize);
+                    let nodeSize = ($self.settings.nodeDotSize * Math.PI);
+                    let nodeMiddleSize = (nodeSize / 2);
+                    $self.ctx.font = nodeSize + "px Arial";
+                    $self.ctx.strokeRect(node.targetX - nodeMiddleSize, node.targetY - nodeMiddleSize, nodeSize, nodeSize);
+                    $self.ctx.fillText(node.targetX + ", " + node.targetY, node.targetX + nodeSize, node.targetY - nodeMiddleSize);
                 }
-                ctx.fill();
-            }
+                $self.ctx.fill();
+            };
 
             /////////////////////////////////////////
             // Get the distance between two nodes. //
@@ -446,19 +405,160 @@
             function getDistance(firstNode, secondNode) {
                 return Math.sqrt(Math.pow(firstNode.currentX - secondNode.currentX, 2) + Math.pow(firstNode.currentY - secondNode.currentY, 2));
             }
-            
-            /////////////////////////////////////////////////////////
-            // Check if the node coordinates are within the canvas //
-            /////////////////////////////////////////////////////////
-            function nodeIsInsideCanvas(nodeX, nodeY)
-            {
-                if (nodeX > 0 && nodeX < settings.canvasWidth &&
-                    nodeY > 0 && nodeY < settings.canvasHeight) {
-                    return true;
+        }
+
+        refresh() {
+            // Stop and clear any lingering drawings.
+            this.clear();
+
+            // Initiate/Update the canvas element.
+            this.canvasElement.width = this.settings.canvasWidth;
+            this.canvasElement.height = this.settings.canvasHeight;
+            this.canvasElement.style.position = this.settings.canvasPosition;
+            this.canvasElement.style.top = this.settings.canvasTop;
+            this.canvasElement.style.bottom = this.settings.canvasBottom;
+            this.canvasElement.style.right = this.settings.canvasRight;
+            this.canvasElement.style.left = this.settings.canvasLeft;
+            this.canvasElement.style.zIndex = this.settings.canvasZ;
+
+            // Start setting up node nodes.
+            this.setupClusterNodes();
+
+            this.animation = new this.Animator(this,
+                this.settings.nodeEase,
+                this.settings.animationFps,
+                this.settings.duration,
+                this.settings.restNodeMovements,
+                this.settings.nodeFancyEntrance,
+                this.draw);
+
+            this.animation.start();
+        }
+
+        start() {
+            if (this.animation !== undefined) {
+                this.animation.start();
+            }
+        }
+
+        stop() {
+            if (this.animation !== undefined) {
+                this.animation.stop();
+            }
+        }
+
+        clear() {
+            this.stop();
+            if (this.ctx !== undefined)
+                this.ctx.clearRect(0, 0, this.settings.canvasWidth, this.settings.canvasHeight);
+        }
+
+        options(options) {
+            if (this.$this !== undefined) {
+                for (let option in options) {
+                    this.settings[option] = options[option];
                 }
-          
-                return false;
+            }
+        }
+
+        destroy() {
+            if (this.$this !== undefined) {
+                this.clear();
+                this.$this.removeData("polygonizr");
+                delete this.$this;
+            }
+        }
+    }
+
+    $.fn.polygonizr = function (option) {
+        let options = typeof option == "object" && option;
+
+        return this.each(function () {
+            let $this = $(this);
+            let $polygonizr = $this.data("polygonizr");
+
+            if (!$polygonizr) {
+                $polygonizr = new Polygonizr($this, options);
+                $this.data("polygonizr", $polygonizr);
+            } else if (options) {
+                $polygonizr.options(options);
+            }
+
+            if (typeof option == 'string') {
+                $polygonizr[option]();
+            } else {
+                $polygonizr.refresh();
             }
         });
     };
+
+    $.fn.polygonizr.defaults = {
+        // Indicates the time (in seconds) to pause after a node has reached its destination. Default: 1
+        restNodeMovements: 1,
+        // Indicates how long (in seconds) it will take for a node to move from start to finish. Default: 3
+        duration: 3,
+        // Indicates the maximum (will be randomized) distance a node can move (in pixles) from its starting position. Default: 100
+        nodeMovementDistance: 100,
+        // Indicates how many nodes to paint which relation can be filled (note: nodeFillSapce must be set to true). Default: 15
+        numberOfNodes: 15,
+        // Indicates how many nodes to paint that does not create relations that can be filled. Default: 25
+        numberOfUnconnectedNode: 25,
+        // Indicates if a line should be drawn between the drawn between unconnected nodes. Default: true
+        ConnectUnconnectedNodes: true,
+        // Indicates the maximum distance between unconnected nodes to draw the line. Default: 250
+        ConnectUnconnectedNodesDistance: 250,
+        // Indicates the maximum painted size of each node's "dot".
+        nodeDotSize: 2.5,
+        // Indicates the ease mode of each node movement (linear, easeIn, easeOut, easeInOut, accelerateDecelerate). Default: easeOut
+        nodeEase: "easeOut",
+        // If true, the nodes starting position will descend into place on load. Default: false
+        nodeFancyEntrance: false,
+        // If true, each nodes starting position will be randomized within the canvas size. If false, each nodes position must be specified manually. Default: true
+        randomizePolygonMeshNetworkFormation: true,
+        // Indicates the positioning of each nodes starting position (note: randomizePolygonMeshNetworkFormation must be set to false). Default: null
+        specifyPolygonMeshNetworkFormation: null,
+        // Indicates how many nodes of the "numberOfNodes" that will be connected. Default: 3
+        nodeRelations: 3,
+        // Indicates the frame rate at which to update each node movement. Default: 30
+        animationFps: 30,
+        // Indicates the color (RGB) of each node's "dot". Default: "200, 200, 200"
+        nodeDotColor: "200, 200, 200",
+        // Indicates the color (RGB) of the line drawn between connected nodes. Default: "150, 150, 150"
+        nodeLineColor: "150, 150, 150",
+        // Indicates the fill color (RGB) between each connected node. Default: "100, 100, 100"
+        nodeFillColor: "100, 100, 100",
+        // Indicates the linear gradient to the fill color (RGB) between each connected node. Default: null
+        nodeFillGradientColor: null,
+        // Indicates the fill color's alpha level (1-0). Default: 0.5
+        nodeFillAlpha: 0.5,
+        // Indicates the alpha level (1-0) of the line drawn between connected nodes. Default: 0.5
+        nodeLineAlpha: 0.5,
+        // Indicates the alpha level (1-0) of each node's "dot". Default: 1.0
+        nodeDotAlpha: 1.0,
+        // Indicates the probability (1-0) of showing the coordinates for each nodes final position. Default: 0
+        nodeDotPrediction: 0,
+        // If true, the relation between connected nodes will be filled. Default: true
+        nodeFillSapce: true,
+        // If true, each node's final position can be outside the canvas boundary. Default: true
+        nodeOverflow: true,
+        // If true, a glowing effect is added to each node, its relations and fill respectively. Default: false
+        nodeGlowing: false,
+        // Indicates the width of the canvas on which to paint each node. Default: $(this).width()
+        canvasWidth: $(this).width(),
+        // Indicates the height of the canvas on which to paint each node. Default: $(this).height();
+        canvasHeight: $(this).height(),
+        // Indicate the CSS position property by which to position the canvas. Default: "absolute"
+        canvasPosition: "absolute",
+        // Indicate the CSS top property by which to vertically position the canvas. Default: "auto"
+        canvasTop: "auto",
+        // Indicate the CSS bottom property by which to vertically position the canvas. Default: "auto"
+        canvasBottom: "auto",
+        // Indicate the CSS right property by which to horizontally position the canvas. Default: "auto"
+        canvasRight: "auto",
+        // Indicate the CSS left property by which to horizontally position the canvas. Default: "auto"
+        canvasLeft: "auto",
+        // Indicate the CSS z-index property by which to specify the stack order of the canvas. Default: "auto"
+        canvasZ: "auto"
+    };
+    
 }(jQuery));

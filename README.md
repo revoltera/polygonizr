@@ -20,9 +20,25 @@ You can easily override default behavior on initialization by passing options to
         nodeEase: 'linear'
     });
 ```
+These options can be updated at any point. However, some updates might require calling <i>refresh</i> afterwards to take effect (see [functions](#Functions) below).
+```javascript
+    // Example of how to make polygonizr responsive to window resizing.
+    $(window).resize(function () {
+        let $sitelading = $('#site-landing');
+        $sitelading.polygonizr("stop");
 
-### For lulz and funz
-Among the possible overrides, you can for example also alter how the initial x and y coordinates are positioned. The <i>"specifyPolygonMeshNetworkFormation"</i> setting acts as a loop for each <i>"numberOfNodes"</i> to be drawn. To alter their positioning, simply return an x and y coordinate to create a desired pattern, as illustrated in the samples below.
+        // Update polygonizr with the new window size.
+        $sitelading.polygonizr({
+            canvasHeight: $(this).height(),
+            canvasWidth: $(this).width()
+        });
+
+        $sitelading.polygonizr("refresh");
+    });
+```
+
+### Custom node positioning
+Among the possible overrides, you can for example also alter how the initial x and y coordinates are positioned for each node. The <i>"specifyPolygonMeshNetworkFormation"</i> setting acts as a loop for each <i>"numberOfNodes"</i> to be painted. To alter their positioning, simply return an x and y coordinate to create a desired pattern, as illustrated in the samples below.
 
 Keep in mind, however, that you need to notify the plugin not to randomize the formation. This is done by passing <i>"false"</i> to the <i>"randomizePolygonMeshNetworkFormation"</i> setting.
 
@@ -56,78 +72,99 @@ The following two samples draws a circle and an archimedean spiral.
             return forEachNode;
         }
     });
+```
 
-    // Positions the initialized mesh nodes on the right side of the screen, half circle style.
-    $('#site-landing-halfcircle').polygonizr({
-        randomizePolygonMeshNetworkFormation: false,
-        specifyPolygonMeshNetworkFormation: function (i) {
-            var forEachNode = {
-                // Half a circle and randomized
-                x: this.canvasWidth - ((this.canvasWidth / 2) + (this.canvasHeight / 2) * Math.cos(i * (2 * Math.PI / this.numberOfNodes))) * Math.random(),
-                y: this.canvasHeight - (this.canvasHeight * (i / this.numberOfNodes))
-            };
-            return forEachNode;
-        }
-    });
+### Functions
+Polygonizr has five functions: start, stop, clear, refresh, and destroy. Each function is described in the following subsections.
+#### Start and Stop
+Use start and stop to pause and continue an animation.
+```javascript
+    $('#site-landing').polygonizr("start");
+    $('#site-landing').polygonizr("stop");
+```
+#### Clear
+Clear will stop any ongoing animation, and then remove its drawing from the canvas.
+```javascript
+    $('#site-landing').polygonizr("clear");
+```
+#### Refresh
+Refresh will first clear an animation, then read all settings and setup the animation again from scratch.
+```javascript
+    $('#site-landing').polygonizr("refresh");
+```
+#### Destroy
+Destroy is used to clear the animation, and remove the instance of the plugin from the current DOM-element.
+```javascript
+    $('#site-landing').polygonizr("destroy");
 ```
 
 ## Settings and Defaults
 
 ```javascript
-            // How long to pause in between new node-movements.
-            restNodeMovements: 1,
-            // When the cluster updates, this sets speed of nodes.
-            duration: 3,
-            // Define the maximum distance to move nodes.
-            nodeMovementDistance: 100,
-            // The number of node nodes to print out.
-            numberOfNodes: 25,
-            // The number of dots, unconnected to any other nodes, floating arround.
-            numberOfUnconnectedNode: 25,
-            // Connects passing free nodes if within the distance as specified in ConnectUnconnectedNodesDistance.
-            ConnectUnconnectedNodes: true,
-            // The distance between unconnected nodes to connect to each other.
-            ConnectUnconnectedNodesDistance: 150,
-            // Define the maximume size of each node dot.
-            nodeDotSize: 2.5,
-            // Sets the ease mode of the movement: linear, easeIn, easeOut, easeInOut, accelerateDecelerate.
-            nodeEase: "easeOut",
-            // If true, the nodes will descend into place on load.
-            nodeFancyEntrance: false,
-            // Makes the cluster forms an ellipse inspired formation, random if true.
-            randomizePolygonMeshNetworkFormation: true,
-            // Define a formula for how to initialize each node dot's position.
-            specifyPolygonMeshNetworkFormation: null,
-            // Number of relations between nodes.
-            nodeRelations: 3,
-            // The FPS for the whole canvas.
-            animationFps: 30,
-            // Sets the color of the node dots in the network (RGB).
-            nodeDotColor: "240, 255, 250",
-            // Sets the color of the node lines in the network (RGB).
-            nodeLineColor: "240, 255, 250",
-            // Sets the color of the filled triangles in the network (RGB).
-            nodeFillColor: "240, 255, 250",
-            // Sets the alpha level for the colors (1-0).
-            nodeFillAlpha: 0.5,
-            // Sets the alpha level for the lines (1-0).
-            nodeLineAlpha: 0.5,
-            // Sets the alpha level for the dots (1-0).
-            nodeDotAlpha: 1.0,
-            // A numberic value (0-1) defining the ods of showing the cooridnates for where a new node destination will end.
-            nodeDotPrediction: 0,
-            // Defines if the triangles in the network should be shown.
-            nodeFillSapce: true,
-            // If true, the animation is allowed to go outside the definde canvas space.
-            nodeOverflow: true,
-            // Define if the active animation should glow or not (not CPU friendly).
-            nodeGlowing: false,
-            // Define the canvas size and css position.
-            canvasWidth: $(this).width(),
-            canvasHeight: $(this).height(),
-            canvasPosition: "absolute",
-            canvasTop: "auto",
-            canvasBottom: "auto",
-            canvasRight: "auto",
-            canvasLeft: "auto"
+    // Indicates the time (in seconds) to pause after a node has reached its destination. Default: 1
+    restNodeMovements: 1,
+    // Indicates how long (in seconds) it will take for a node to move from start to finish. Default: 3
+    duration: 3,
+    // Indicates the maximum (will be randomized) distance a node can move (in pixles) from its starting position. Default: 100
+    nodeMovementDistance: 100,
+    // Indicates how many nodes to paint which relation can be filled (note: nodeFillSapce must be set to true). Default: 15
+    numberOfNodes: 15,
+    // Indicates how many nodes to paint that does not create relations that can be filled. Default: 25
+    numberOfUnconnectedNode: 25,
+    // Indicates if a line should be drawn between the drawn between unconnected nodes. Default: true
+    ConnectUnconnectedNodes: true,
+    // Indicates the maximum distance between unconnected nodes to draw the line. Default: 250
+    ConnectUnconnectedNodesDistance: 250,
+    // Indicates the maximum painted size of each node's "dot".
+    nodeDotSize: 2.5,
+    // Indicates the ease mode of each node movement (linear, easeIn, easeOut, easeInOut, accelerateDecelerate). Default: easeOut
+    nodeEase: "easeOut",
+    // If true, the nodes starting position will descend into place on load. Default: false
+    nodeFancyEntrance: false,
+    // If true, each nodes starting position will be randomized within the canvas size. If false, each nodes position must be specified manually. Default: true
+    randomizePolygonMeshNetworkFormation: true,
+    // Indicates the positioning of each nodes starting position (note: randomizePolygonMeshNetworkFormation must be set to false). Default: null
+    specifyPolygonMeshNetworkFormation: null,
+    // Indicates how many nodes of the "numberOfNodes" that will be connected. Default: 3
+    nodeRelations: 3,
+    // Indicates the frame rate at which to update each node movement. Default: 30
+    animationFps: 30,
+    // Indicates the color (RGB) of each node's "dot". Default: "200, 200, 200"
+    nodeDotColor: "200, 200, 200",
+    // Indicates the color (RGB) of the line drawn between connected nodes. Default: "150, 150, 150"
+    nodeLineColor: "150, 150, 150",
+    // Indicates the fill color (RGB) between each connected node. Default: "100, 100, 100"
+    nodeFillColor: "100, 100, 100",
+    // Indicates the linear gradient to the fill color (RGB) between each connected node. Default: null
+    nodeFillGradientColor: null,
+    // Indicates the fill color's alpha level (1-0). Default: 0.5
+    nodeFillAlpha: 0.5,
+    // Indicates the alpha level (1-0) of the line drawn between connected nodes. Default: 0.5
+    nodeLineAlpha: 0.5,
+    // Indicates the alpha level (1-0) of each node's "dot". Default: 1.0
+    nodeDotAlpha: 1.0,
+    // Indicates the probability (1-0) of showing the coordinates for each nodes final position. Default: 0
+    nodeDotPrediction: 0,
+    // If true, the relation between connected nodes will be filled. Default: true
+    nodeFillSapce: true,
+    // If true, each node's final position can be outside the canvas boundary. Default: true
+    nodeOverflow: true,
+    // If true, a glowing effect is added to each node, its relations and fill respectively. Default: false
+    nodeGlowing: false,
+    // Indicates the width of the canvas on which to paint each node. Default: $(this).width()
+    canvasWidth: $(this).width(),
+    // Indicates the height of the canvas on which to paint each node. Default: $(this).height();
+    canvasHeight: $(this).height(),
+    // Indicate the CSS position property by which to position the canvas. Default: "absolute"
+    canvasPosition: "absolute",
+    // Indicate the CSS top property by which to vertically position the canvas. Default: "auto"
+    canvasTop: "auto",
+    // Indicate the CSS bottom property by which to vertically position the canvas. Default: "auto"
+    canvasBottom: "auto",
+    // Indicate the CSS right property by which to horizontally position the canvas. Default: "auto"
+    canvasRight: "auto",
+    // Indicate the CSS left property by which to horizontally position the canvas. Default: "auto"
+    canvasLeft: "auto",
+    // Indicate the CSS z-index property by which to specify the stack order of the canvas. Default: "auto"
+    canvasZ: "auto"
 ```

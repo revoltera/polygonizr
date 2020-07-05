@@ -1,28 +1,46 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="utf-8">
   <title>Revoltera Labs: polygonizr sample file</title>
-  <script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
+  <script src="https://code.jquery.com/jquery-3.3.1.min.js"
+    integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
   <script src="../src/polygonizr.min.js"></script>
   <style>
-    html, body {
-        height: 100%;
-        width: 100%;
-        margin: 0;
+    html,
+    body {
+      height: 100%;
+      width: 100%;
+      margin: 0;
     }
+
     #site-landing {
-        position:relative;
-        height: 100%;
-        width: 100%;
-        background-color:#717171;
+      position: relative;
+      height: 100%;
+      width: 100%;
+      background-color: rgb(30, 30, 30);
     }
   </style>
 </head>
+
 <body>
   <div id="site-landing"></div>
   <script>
-    $('#site-landing').polygonizr();
+    let $sitelading = $('#site-landing');
+    $sitelading.polygonizr();
+
+    // Update size.
+    $(window).resize(function () {
+      $sitelading.polygonizr("stop");
+      $sitelading.polygonizr({
+        canvasHeight: $(this).height(),
+        canvasWidth: $(this).width()
+      });
+
+      $sitelading.polygonizr("refresh");
+    });
   </script>
 </body>
+
 </html>
