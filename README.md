@@ -1,6 +1,6 @@
 polygonizr
 ==========
-**A jQuery plugin for creating a polygon mesh network bacgrkound**
+**A jQuery plugin for creating a polygon mesh network background**
 
 [![License](https://img.shields.io/badge/license-Beerware-blue.svg)](LICENSE.md)
 
