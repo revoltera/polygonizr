@@ -4,6 +4,8 @@ polygonizr
 
 [![License](https://img.shields.io/badge/license-Beerware-blue.svg)](LICENSE.md)
 
+![GIF showing polygonize animation](/samples/polygonizr-readme-animation.gif)
+
 ## Samples
 
 ### Initialization
