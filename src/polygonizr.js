@@ -10,7 +10,7 @@
 ; (function ($) {
 
     class Polygonizr {
-        
+
         constructor($this, options) {
             //////////////////////
             // Define variables //
@@ -37,6 +37,16 @@
                     EASING_EASEINOUT: "easeInOut",
                     EASING_ACCELERATE: "accelerateDecelerate",
                     EASING_DESCENDING: "descendingEntrance"
+                },
+                Rotation: {
+                    MEDIAN_AXIS: "median",
+                    CENTER_AXIS: "center",
+                    LEFT_AXIS: "left",
+                    RIGHT_AXIS: "right"
+                },
+                Coloring: {
+                    COLORING_LINEAR: "linear",
+                    COLORING_RANDOM: "random"
                 }
             };
 
@@ -50,7 +60,7 @@
                 // Distribute the nodes somewhere on our canvas.
                 for (let i = 0; i < this.settings.numberOfNodes + this.settings.numberOfUnconnectedNode; i++) {
                     // Define the variable to hold the current node's position.
-                    let currentNode = { x: 0, y: 0 };
+                    let currentNode = { x: 0, y: 0, z: 0 };
 
                     // Check what cluster formation, and get the position accordingly.
                     if (this.settings.randomizePolygonMeshNetworkFormation) {
@@ -60,6 +70,16 @@
                     else {
                         currentNode = this.settings.specifyPolygonMeshNetworkFormation(i);
                     }
+
+                    // Set random z-origin.
+                    let phi = Math.acos((Math.random() * 2) - 1);
+                    currentNode.z = this.settings.node3dDepthDistance + (this.settings.node3dDepthDistance * Math.cos(phi));
+
+                    // Set colors into arrays.
+                    this.settings.nodeDotColor = Array.isArray(this.settings.nodeDotColor) ? this.settings.nodeDotColor : new Array(this.settings.nodeDotColor);
+                    this.settings.nodeLineColor = Array.isArray(this.settings.nodeLineColor) ? this.settings.nodeLineColor : new Array(this.settings.nodeLineColor);
+                    this.settings.nodeFillColor = Array.isArray(this.settings.nodeFillColor) ? this.settings.nodeFillColor : new Array(this.settings.nodeFillColor);
+                    this.settings.nodeFillGradientColor = Array.isArray(this.settings.nodeFillGradientColor) ? this.settings.nodeFillGradientColor : new Array(this.settings.nodeFillGradientColor);
 
                     // Set max if no overflow is allowed.
                     if (this.settings.nodeOverflow == false) {
@@ -87,7 +107,9 @@
                         currentY: currentNode.y,
                         originY: currentNode.y,
                         startY: currentNode.x,
-                        targetY: currentNode.y
+                        targetY: currentNode.y,
+                        originZ: currentNode.z,
+                        zAlpha: 1
                     });
 
                     // Setup free floating, unconnected dots.
@@ -121,6 +143,20 @@
                     // Set closest node.
                     node.Closest = closest;
 
+                    // Set the color schema for the node.
+                    node.nodeDotColor = this.settings.nodeDotColor[this.settings.nodeDotColoringSchema == Constants.Coloring.COLORING_RANDOM ?
+                                                                    Math.floor(Math.random() * this.settings.nodeDotColor.length) :
+                                                                    i % this.settings.nodeDotColor.length];
+                    node.nodeLineColor = this.settings.nodeLineColor[this.settings.nodeLineColoringSchema == Constants.Coloring.COLORING_RANDOM ?
+                                                                    Math.floor(Math.random() * this.settings.nodeLineColor.length) :
+                                                                    i % this.settings.nodeLineColor.length];
+                    node.nodeFillColor = this.settings.nodeFillColor[this.settings.nodeFillColoringSchema == Constants.Coloring.COLORING_RANDOM ?
+                                                                    Math.floor(Math.random() * this.settings.nodeFillColor.length) :
+                                                                    i % this.settings.nodeFillColor.length];
+                    node.nodeFillGradientColor = this.settings.nodeFillGradientColor[this.settings.nodeFillGradientColoringSchema == Constants.Coloring.COLORING_RANDOM ?
+                                                                    Math.floor(Math.random() * this.settings.nodeFillGradientColor.length) :
+                                                                    i % this.settings.nodeFillGradientColor.length];
+
                     // Assigne the alpha level to the current node.
                     this.setAlphaLevel(node);
                 }
@@ -149,7 +185,7 @@
                             }
                             // For each frame up till total duration, set new position for x and y.
                             if (m_entranceSingleton && fancyEntrance) {
-                                setNewNodePossition($self.Constants.Animation.EASING_DESCENDING, currentDuration, m_duration);
+                                setNewNodePossition(Constants.Animation.EASING_DESCENDING, currentDuration, m_duration);
                             }
                             else {
                                 setNewNodePossition(easing, currentDuration, m_duration);
@@ -191,6 +227,9 @@
                 };
 
                 function setNewTargetPossition() {
+                    // Used for the 3d rotation.
+                    let allNewTargetX = [];
+
                     for (let i in $self.nodes) {
                         // Calculate new target possitions.
                         let newTargetX = $self.calculateNewTargetPossition($self.nodes[i].originX);
@@ -203,13 +242,74 @@
 
                         // Check if we ought to draw node-prediction.
                         $self.nodes[i].NodePrediction = $self.settings.nodeDotPrediction > 0 && Math.random() <= $self.settings.nodeDotPrediction;
+
+                        // Add each target X.
+                        allNewTargetX.push($self.nodes[i].targetX);
                     }
+
+                    if ($self.settings.node3dRotateAxis == Constants.Rotation.MEDIAN_AXIS) {
+                        // Get the median value of all target X to (3D) rotate around.
+                        allNewTargetX.sort(function (a, b) { return a - b; });
+
+                        var half = Math.floor(allNewTargetX.length / 2);
+
+                        if (allNewTargetX.length % 2) {
+                            m_rotationAxis = allNewTargetX[half];
+                        } else {
+                            m_rotationAxis = Math.floor((allNewTargetX[half - 1] + allNewTargetX[half]) / 2.0);
+                        }
+                    } else if ($self.settings.node3dRotateAxis == Constants.Rotation.LEFT_AXIS) {
+                        m_rotationAxis = 0;
+                    } else if ($self.settings.node3dRotateAxis == Constants.Rotation.RIGHT_AXIS) {
+                        m_rotationAxis = $self.settings.canvasWidth;
+                    } else {
+                        m_rotationAxis = $self.settings.canvasWidth / 2;
+                    }
+
+                    // Rotate on nth-itteration
+                    m_3dRotateOnNthNodeMovement++;
                 }
 
                 function setNewNodePossition(easing, currentTime, endTime) {
+                    // Calculate the current rotation, speed, and angle for the (3D) rotation.
+                    m_turnSpeed = 2 * Math.PI / ($self.settings.duration * $self.settings.animationFps);
+                    m_turnAngle = (m_turnAngle + m_turnSpeed) % (2 * Math.PI);
+                    m_sinAngle = Math.sin(getEasing($self.settings.node3dRotatEase, currentTime, m_turnSpeed, 2 * Math.PI, endTime));
+                    m_cosAngle = Math.cos(getEasing($self.settings.node3dRotatEase, currentTime, m_turnSpeed, 2 * Math.PI, endTime));
+
                     for (let i in $self.nodes) {
+                        // Normal movement.
                         $self.nodes[i].currentX = getEasing(easing, currentTime, $self.nodes[i].startX, $self.nodes[i].targetX, endTime);
                         $self.nodes[i].currentY = getEasing(easing, currentTime, $self.nodes[i].startY, $self.nodes[i].targetY, endTime);
+
+                        // Rotation logic.
+                        if ($self.settings.node3dRotate && (m_3dRotateOnNthNodeMovement % $self.settings.node3dRotateOnNthNodeMovement) == 0) {
+                            let m_dist = m_rotationAxis - $self.nodes[i].currentX;
+                            m_rotX = -m_cosAngle * m_dist + m_sinAngle * ($self.nodes[i].originZ - $self.settings.node3dDepthDistance);
+                            m_rotZ = -m_sinAngle * m_dist + m_cosAngle * ($self.nodes[i].originZ - $self.settings.node3dDepthDistance);
+                            $self.nodes[i].currentX = m_rotX + m_rotationAxis;
+
+                            if ($self.settings.nodeOverflow == false) {
+                                // Calculate new max heights and widths.
+                                let maxHeight = $self.settings.canvasHeight - $self.settings.nodeDotSize;
+                                let maxWidth = $self.settings.canvasWidth - $self.settings.nodeDotSize;
+
+                                // Alter the canvas position to force it inside the canvas.
+                                $self.nodes[i].currentX = Math.floor($self.nodes[i].currentX > maxWidth ? maxWidth : $self.nodes[i].currentX);
+                                $self.nodes[i].currentX = Math.floor($self.nodes[i].currentX < $self.settings.nodeDotSize ? $self.settings.nodeDotSize : $self.nodes[i].currentX);
+                                $self.nodes[i].currentY = Math.floor($self.nodes[i].currentY > $self.settings.canvasHeight ? maxHeight : $self.nodes[i].currentY);
+                                $self.nodes[i].currentY = Math.floor($self.nodes[i].currentY < $self.settings.nodeDotSize ? $self.settings.nodeDotSize : $self.nodes[i].currentY);
+                            }
+
+                            // To mimic depth, set a lower alpha level on that which is drawn "futher back".
+                            $self.nodes[i].zAlpha = (1 - m_rotZ / (m_rotationAxis / 2));
+                            let minAlpha = $self.settings.node3dRotateDepthAlpha;
+                            $self.nodes[i].zAlpha = ($self.nodes[i].zAlpha > 1) ? 1 : (($self.nodes[i].zAlpha < minAlpha) ? minAlpha : $self.nodes[i].zAlpha);
+
+                            // Reset the counter.
+                            m_3dRotateOnNthNodeMovement = 0;
+                        }
+
                     }
                 }
 
@@ -232,13 +332,20 @@
                 let m_entranceSingleton = true;
                 let m_duration;
                 let m_delay;
+                let m_sinAngle;
+                let m_cosAngle;
+                let m_turnAngle = 0;
+                let m_turnSpeed = 2 * Math.PI / (100); //the sphere will rotate at this speed (one complete rotation every 1600 frames). TODO
+                let m_rotZ;
+                let m_rotX;
+                let m_rotationAxis = 0;
+                let m_3dRotateOnNthNodeMovement = 0;
             };
 
             function getEasing(easing, currentTime, startPossition, targetPossition, endTime) {
                 switch (easing) {
                     case Constants.Animation.EASING_LINEAR:
                         return (targetPossition - startPossition) * (currentTime / endTime) + startPossition;
-                        break;
                     case Constants.Animation.EASING_EASEIN:
                         currentTime /= endTime;
                         return (targetPossition - startPossition) * Math.pow(currentTime, 2) + startPossition;
@@ -250,19 +357,16 @@
                         if (currentTime < 1)
                             return (targetPossition - startPossition) / 2 * Math.pow(currentTime, 2) + startPossition;
                         return -(targetPossition - startPossition) / 2 * ((currentTime - 1) * ((currentTime - 1) - 2) - 1) + startPossition;
-                        break;
                     case Constants.Animation.EASING_ACCELERATE:
                         currentTime /= (endTime / 2);
                         if (currentTime < 1)
                             return (targetPossition - startPossition) / 2 * Math.pow(currentTime, 3) + startPossition;
                         return (targetPossition - startPossition) / 2 * (Math.pow(currentTime - 2, 3) + 2) + startPossition;
-                        break;
                     case Constants.Animation.EASING_DESCENDING:
                         currentTime /= (endTime / 2);
                         if (currentTime < 1)
                             return (targetPossition - startPossition) / Math.pow(currentTime, 3) + startPossition;
                         return (targetPossition - startPossition) / (Math.pow(currentTime - 2, 3) + 2) + startPossition;
-                        break;
                     default:
                         return getEasing(Constants.Animation.EASING_LINEAR, currentTime, startPossition, targetPossition, endTime);
                 }
@@ -337,7 +441,14 @@
 
                     if (lineConnection || drawCloseUnconnection) {
                         if (node.lineAlpha > 0) {
-                            $self.drawLineNodeConnection($self, node, i);
+                            if (drawCloseUnconnection) {
+                                // For new connections, let the alpha out/in a bit.
+                                let connectioDist = (1 - (getDistance(node, node.Closest[i]) / $self.settings.ConnectUnconnectedNodesDistance)) * 1.8;
+                                connectioDist = connectioDist > 1 ? 1 : connectioDist;
+                                $self.drawLineNodeConnection($self, node, i, connectioDist);
+                            } else {
+                                $self.drawLineNodeConnection($self, node, i, 1);
+                            }
                         }
 
                         if ($self.settings.nodeFillSapce && node.fillAlpha > 0 && lineConnection == true) {
@@ -347,11 +458,11 @@
                 }
             };
 
-            this.drawLineNodeConnection = function ($self, node, i) {
+            this.drawLineNodeConnection = function ($self, node, i, connectioAlpha) {
                 $self.ctx.beginPath();
                 $self.ctx.moveTo(node.currentX, node.currentY);
                 $self.ctx.lineTo(node.Closest[i].currentX, node.Closest[i].currentY);
-                $self.ctx.strokeStyle = 'rgba(' + $self.settings.nodeLineColor + ',' + node.lineAlpha + ')';
+                $self.ctx.strokeStyle = 'rgba(' + node.nodeLineColor + ',' + ((node.lineAlpha * node.zAlpha) * connectioAlpha) + ')';
                 $self.ctx.stroke();
             };
 
@@ -362,14 +473,14 @@
                 $self.ctx.lineTo(node.Closest[(i + 1) % node.Closest.length].currentX, node.Closest[(i + 1) % node.Closest.length].currentY);
 
                 // Check if we want gradient color, and if the coordinates are finite.
-                if ($self.settings.nodeFillGradientColor !== null && (isFinite(node.currentX) && isFinite(node.currentY) && isFinite(node.Closest[i].currentX) && isFinite(node.Closest[i].currentY))) {
+                if (node.nodeFillGradientColor !== null && (isFinite(node.currentX) && isFinite(node.currentY) && isFinite(node.Closest[i].currentX) && isFinite(node.Closest[i].currentY))) {
                     var gradient = $self.ctx.createLinearGradient(node.currentX, node.currentY, node.Closest[i].currentX, node.Closest[i].currentY);
-                    gradient.addColorStop(0, 'rgba(' + $self.settings.nodeFillColor + ',' + node.fillAlpha + ')');
-                    gradient.addColorStop(1, 'rgba(' + $self.settings.nodeFillGradientColor + ', ' + node.fillAlpha + ')');
+                    gradient.addColorStop(0, 'rgba(' + node.nodeFillColor + ',' + (node.fillAlpha * node.zAlpha) + ')');
+                    gradient.addColorStop(1, 'rgba(' + node.nodeFillGradientColor + ', ' + (node.fillAlpha * node.zAlpha) + ')');
                     $self.ctx.fillStyle = gradient;
                 }
                 else {
-                    $self.ctx.fillStyle = 'rgba(' + $self.settings.nodeFillColor + ',' + node.fillAlpha + ')';
+                    $self.ctx.fillStyle = 'rgba(' + node.nodeFillColor + ',' + (node.fillAlpha * node.zAlpha) + ')';
                 }
 
                 $self.ctx.fill();
@@ -385,10 +496,11 @@
 
                 $self.ctx.beginPath();
                 $self.ctx.arc(node.currentX, node.currentY, $self.settings.nodeDotSize, 0, Math.PI * 2, false);
-                $self.ctx.fillStyle = 'rgba(' + $self.settings.nodeDotColor + ', ' + node.dotAlpha + ')';
+                $self.ctx.fillStyle = 'rgba(' + node.nodeDotColor + ', ' + (node.dotAlpha * node.zAlpha) + ')';
+
                 if ($self.settings.nodeGlowing) {
                     $self.ctx.shadowBlur = 10;
-                    $self.ctx.shadowColor = 'rgba(' + $self.settings.nodeDotColor + ', ' + node.dotAlpha + ')';
+                    $self.ctx.shadowColor = 'rgba(' + node.nodeDotColor + ', ' + (node.dotAlpha * node.zAlpha) + ')';
                 } if (node.NodePrediction == true) {
                     let nodeSize = ($self.settings.nodeDotSize * Math.PI);
                     let nodeMiddleSize = (nodeSize / 2);
@@ -494,15 +606,27 @@
 
     $.fn.polygonizr.defaults = {
         // Indicates the time (in seconds) to pause after a node has reached its destination. Default: 1
-        restNodeMovements: 1,
+        restNodeMovements: 0,
         // Indicates how long (in seconds) it will take for a node to move from start to finish. Default: 3
         duration: 3,
         // Indicates the maximum (will be randomized) distance a node can move (in pixles) from its starting position. Default: 100
         nodeMovementDistance: 100,
-        // Indicates how many nodes to paint which relation can be filled (note: nodeFillSapce must be set to true). Default: 15
-        numberOfNodes: 15,
-        // Indicates how many nodes to paint that does not create relations that can be filled. Default: 25
-        numberOfUnconnectedNode: 25,
+        // Indicates the maximum (will be randomized) distance a node can have in depth (for a better 3D effect). Default: 300
+        node3dDepthDistance: 300,
+        // If set to true, the animation will rotate. Default: false
+        node3dRotate: false,
+        // If node3dRotate is set to true, the following option indicate if rotation should pause between n restNodeMovements. Default: 1
+        node3dRotateOnNthNodeMovement: 1,
+        // If node3dRotate is set to true, the following option indicate the alpha of the nodes at the far end of the rotation, creating depth. Default: 0.1
+        node3dRotateDepthAlpha: 0.1,
+        // If node3dRotate is set to true, the following option indicates the ease mode of each node movement (linear, easeIn, easeOut, easeInOut, accelerateDecelerate). Default: linear
+        node3dRotatEase: "linear",
+        // If node3dRotate is set to true, the following option indicate the axis on the canvas around which the animation will rotate (median, center, left, right). Default: center
+        node3dRotateAxis: "center",
+        // Indicates how many nodes to paint which relation can be filled (note: nodeFillSapce must be set to true). Default: 20
+        numberOfNodes: 20,
+        // Indicates how many nodes to paint that does not create relations that can be filled. Default: 35
+        numberOfUnconnectedNode: 35,
         // Indicates if a line should be drawn between the drawn between unconnected nodes. Default: true
         ConnectUnconnectedNodes: true,
         // Indicates the maximum distance between unconnected nodes to draw the line. Default: 250
@@ -521,14 +645,22 @@
         nodeRelations: 3,
         // Indicates the frame rate at which to update each node movement. Default: 30
         animationFps: 30,
-        // Indicates the color (RGB) of each node's "dot". Default: "200, 200, 200"
+        // Indicates the color (RGB), or an array of colors, of each node's "dot". Default: "200, 200, 200"
         nodeDotColor: "200, 200, 200",
-        // Indicates the color (RGB) of the line drawn between connected nodes. Default: "150, 150, 150"
+        // If nodeDotColor is set to an array of colors, this option indicates in what order to pick the colors (linear or random). Default: linear
+        nodeDotColoringSchema: "linear",
+        // Indicates the color (RGB), or an array of colors, of the line drawn between connected nodes. Default: "150, 150, 150"
         nodeLineColor: "150, 150, 150",
-        // Indicates the fill color (RGB) between each connected node. Default: "100, 100, 100"
+        // If nodeLineColor is set to an array of colors, this option indicates in what order to pick the colors (linear or random). Default: linear
+        nodeLineColoringSchema: "linear",
+        // Indicates the fill color (RGB), or an array of colors, between each connected node. Default: "100, 100, 100"
         nodeFillColor: "100, 100, 100",
-        // Indicates the linear gradient to the fill color (RGB) between each connected node. Default: null
+        // If nodeFillColor is set to an array of colors, this option indicates in what order to pick the colors (linear or random). Default: linear
+        nodeFillColoringSchema: "linear",
+        // Indicates the linear gradient to the fill color (RGB), or an array of colors, between each connected node. Default: null
         nodeFillGradientColor: null,
+        // If nodeFillGradientColor is set to an array of colors, this option indicates in what order to pick the colors (linear or random). Default: linear
+        nodeFillGradientColoringSchema: "linear",
         // Indicates the fill color's alpha level (1-0). Default: 0.5
         nodeFillAlpha: 0.5,
         // Indicates the alpha level (1-0) of the line drawn between connected nodes. Default: 0.5
@@ -560,5 +692,5 @@
         // Indicate the CSS z-index property by which to specify the stack order of the canvas. Default: "auto"
         canvasZ: "auto"
     };
-    
+
 }(jQuery));
