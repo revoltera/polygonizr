@@ -116,32 +116,29 @@
                     this.nodes[i].UnconnectedNode = (this.settings.numberOfUnconnectedNode > i);
                 }
 
-                // For each node find the 3 closest nodes.
+                // For each node find the closest nodes.
                 for (let i = 0; i < this.nodes.length; i++) {
-                    // Collect the closest nodes.
-                    let closest = [];
-
                     // Start of with the first node.
                     let node = this.nodes[i];
+                    let closestNodes = this.nodes;
 
-                    // Collect randomly closest nodes.
-                    for (let j = 0; j < this.nodes.length; j++) {
-                        let tempNode = this.nodes[j];
-                        if (node != tempNode) {
-                            for (let k = 0; k < this.settings.nodeRelations; k++) {
-                                if (closest[k] == undefined) {
-                                    closest[k] = tempNode;
-                                    break;
-                                } if (getDistance(node, tempNode) < getDistance(node, closest[k])) {
-                                    closest[k] = tempNode;
-                                    break;
-                                }
-                            }
-                        }
-                    }
+                    // Filter out the current node from the collection.
+                    closestNodes = closestNodes.filter(function(item) {
+                        return item !== node;
+                    });
+
+                    // Sort all nodes in the collection based on their distance from the current node.
+                    closestNodes.sort(function (a, b) {
+                        if (getDistance(node, a) > getDistance(node, b)) return 1;
+                        if (getDistance(node, a) < getDistance(node, b)) return -1;
+                        return 0;
+                    });
+
+                    // From the sorted list of nodes, get the number of nodeRelations we want.
+                    closestNodes = closestNodes.splice(0, this.settings.nodeRelations);
 
                     // Set closest node.
-                    node.Closest = closest;
+                    node.Closest = closestNodes;
 
                     // Set the color schema for the node.
                     node.nodeDotColor = this.settings.nodeDotColor[this.settings.nodeDotColoringSchema == Constants.Coloring.COLORING_RANDOM ?
@@ -266,7 +263,7 @@
                         m_rotationAxis = $self.settings.canvasWidth / 2;
                     }
 
-                    // Rotate on nth-itteration
+                    // Rotate on nth-itteration.
                     m_3dRotateOnNthNodeMovement++;
                 }
 
@@ -335,7 +332,7 @@
                 let m_sinAngle;
                 let m_cosAngle;
                 let m_turnAngle = 0;
-                let m_turnSpeed = 2 * Math.PI / (100); //the sphere will rotate at this speed (one complete rotation every 1600 frames). TODO
+                let m_turnSpeed = 2 * Math.PI / (100);
                 let m_rotZ;
                 let m_rotX;
                 let m_rotationAxis = 0;
@@ -436,7 +433,7 @@
 
                 for (let i in node.Closest) {
                     // Check if we should draw the connection, or if its an unconnected node or if it is too far away.
-                    let lineConnection = (node.Closest[i].UnconnectedNode == false && node.UnconnectedNode == false);
+                    let lineConnection = (node.Closest[i].UnconnectedNode == false && node.Closest[(i + 1) % node.Closest.length].UnconnectedNode == false);
                     let drawCloseUnconnection = $self.settings.ConnectUnconnectedNodes == true && getDistance(node, node.Closest[i]) <= $self.settings.ConnectUnconnectedNodesDistance;
 
                     if (lineConnection || drawCloseUnconnection) {
@@ -451,7 +448,7 @@
                             }
                         }
 
-                        if ($self.settings.nodeFillSapce && node.fillAlpha > 0 && lineConnection == true) {
+                        if ($self.settings.nodeFillSapce && node.fillAlpha > 0 && lineConnection) {
                             $self.drawFillNodeConnection($self, node, i);
                         }
                     }
@@ -627,7 +624,7 @@
         numberOfNodes: 20,
         // Indicates how many nodes to paint that does not create relations that can be filled. Default: 35
         numberOfUnconnectedNode: 35,
-        // Indicates if a line should be drawn between the drawn between unconnected nodes. Default: true
+        // Indicates if a line should be drawn between unconnected nodes. Default: true
         ConnectUnconnectedNodes: true,
         // Indicates the maximum distance between unconnected nodes to draw the line. Default: 250
         ConnectUnconnectedNodesDistance: 250,
