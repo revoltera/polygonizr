@@ -168,7 +168,7 @@ Destroy is used to clear the animation, and remove the instance of the plugin fr
         // Indicates the probability (1-0) of showing the coordinates for each nodes final position. Default: 0
         nodeDotPrediction: 0,
         // If true, the relation between connected nodes will be filled. Default: true
-        nodeFillSapce: true,
+        nodeFillSpace: true,
         // If true, each node's final position can be outside the canvas boundary. Default: true
         nodeOverflow: true,
         // If true, a glowing effect is added to each node, its relations and fill respectively. Default: false

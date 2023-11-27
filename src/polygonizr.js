@@ -448,7 +448,7 @@
                             }
                         }
 
-                        if ($self.settings.nodeFillSapce && node.fillAlpha > 0 && lineConnection) {
+                        if ($self.settings.nodeFillSpace && node.fillAlpha > 0 && lineConnection) {
                             $self.drawFillNodeConnection($self, node, i);
                         }
                     }
@@ -620,7 +620,7 @@
         node3dRotatEase: "linear",
         // If node3dRotate is set to true, the following option indicate the axis on the canvas around which the animation will rotate (median, center, left, right). Default: center
         node3dRotateAxis: "center",
-        // Indicates how many nodes to paint which relation can be filled (note: nodeFillSapce must be set to true). Default: 20
+        // Indicates how many nodes to paint which relation can be filled (note: nodeFillSpace must be set to true). Default: 20
         numberOfNodes: 20,
         // Indicates how many nodes to paint that does not create relations that can be filled. Default: 35
         numberOfUnconnectedNode: 35,
@@ -667,7 +667,7 @@
         // Indicates the probability (1-0) of showing the coordinates for each nodes final position. Default: 0
         nodeDotPrediction: 0,
         // If true, the relation between connected nodes will be filled. Default: true
-        nodeFillSapce: true,
+        nodeFillSpace: true,
         // If true, each node's final position can be outside the canvas boundary. Default: true
         nodeOverflow: true,
         // If true, a glowing effect is added to each node, its relations and fill respectively. Default: false
