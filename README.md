@@ -118,7 +118,7 @@ Destroy is used to clear the animation, and remove the instance of the plugin fr
         // If node3dRotate is set to true, the following option indicate the alpha of the nodes at the far end of the rotation, creating depth. Default: 0.1
         node3dRotateDepthAlpha: 0.1,
         // If node3dRotate is set to true, the following option indicates the ease mode of each node movement (linear, easeIn, easeOut, easeInOut, accelerateDecelerate). Default: linear
-        node3dRotatEase: "linear",
+        node3dRotateEase: "linear",
         // If node3dRotate is set to true, the following option indicate the axis on the canvas around which the animation will rotate (median, center, left, right). Default: center
         node3dRotateAxis: "center",
         // Indicates how many nodes to paint which relation can be filled (note: nodeFillSapce must be set to true). Default: 20
@@ -168,7 +168,7 @@ Destroy is used to clear the animation, and remove the instance of the plugin fr
         // Indicates the probability (1-0) of showing the coordinates for each nodes final position. Default: 0
         nodeDotPrediction: 0,
         // If true, the relation between connected nodes will be filled. Default: true
-        nodeFillSapce: true,
+        nodeFillSpace: true,
         // If true, each node's final position can be outside the canvas boundary. Default: true
         nodeOverflow: true,
         // If true, a glowing effect is added to each node, its relations and fill respectively. Default: false
